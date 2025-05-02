@@ -1,0 +1,8 @@
+# .gitignore
+
+# Env
+.env
+.env.production
+
+# Node
+node_modules

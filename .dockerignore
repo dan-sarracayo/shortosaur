@@ -1,0 +1,19 @@
+# .gitignore
+
+# Node modules
+node_modules
+
+# Npm debug logs
+npm-debug.log
+
+# Local .env files
+.env
+.env.local
+
+# Docker files
+Dockerfile*
+.dockerignore
+
+# Git
+.git
+.gitignore

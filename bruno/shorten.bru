@@ -1,0 +1,17 @@
+meta {
+  name: shorten
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/shorten
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "url": "http://sarracayo.com/"
+  }
+}
