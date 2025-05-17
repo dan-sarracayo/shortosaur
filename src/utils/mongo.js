@@ -4,7 +4,6 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
  * Creates a new mongodb client using our env vars.
  */
 const createMongoClient = async () => {
-  console.log("creating mongodb client: ", process.env.MONGO_URI);
   // Init client.
   const client = new MongoClient(process.env.MONGO_URI, {
     serverApi: {

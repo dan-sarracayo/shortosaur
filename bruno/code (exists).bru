@@ -1,0 +1,19 @@
+meta {
+  name: code (exists)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{url}}/T7gDz6
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 302
+}
+
+script:pre-request {
+  req.setMaxRedirects(0); // Stop Redirects
+}

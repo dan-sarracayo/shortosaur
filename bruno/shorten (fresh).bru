@@ -1,0 +1,34 @@
+meta {
+  name: shorten (fresh)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{url}}/shorten
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "url": "http://sarracayo.com/{{date}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.time: isNumber
+  res.body.redirect: isString
+  res.body.endpoint: contains sarracayo
+}
+
+script:pre-request {
+  const date = new Date();
+  bru.setEnvVar("date", date.getTime());
+}
+
+script:post-response {
+  
+  
+}

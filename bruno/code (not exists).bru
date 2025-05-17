@@ -1,0 +1,20 @@
+meta {
+  name: code (not exists)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{url}}/not123
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: contains Not Found
+}
+
+script:pre-request {
+  req.setMaxRedirects(0); // Stop Redirects
+}

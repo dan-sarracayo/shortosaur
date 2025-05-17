@@ -13,6 +13,9 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+# Rename docker env to just env.
+RUN ["mv", ".env.docker", ".env"]
+
 # Expose the port the app runs on
 EXPOSE 3000
 
