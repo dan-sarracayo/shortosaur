@@ -109,12 +109,11 @@ const clearHistory = () => {
     const inputUrl = input.value;
     const response = await doShortening(inputUrl);
 
-    console.log(response);
-
     if (response.status !== 200) {
       alert(response);
     } else {
       saveResponse(response.body);
+      input.value = "";
     }
   });
 })();
