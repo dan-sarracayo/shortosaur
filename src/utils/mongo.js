@@ -1,17 +1,11 @@
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient } = require("mongodb");
 
 /**
  * Creates a new mongodb client using our env vars.
  */
 const createMongoClient = async () => {
   // Init client.
-  const client = new MongoClient(process.env.MONGO_URI, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    },
-  });
+  const client = new MongoClient(process.env.MONGO_URI);
 
   // Do connection.
   await client.connect();

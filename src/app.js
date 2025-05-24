@@ -7,45 +7,56 @@ const path = require("path");
 const cron = require("node-cron");
 
 const { createMongoClient } = require("./utils/mongo");
+const { log, error } = require("./utils/helpers");
 
 const app = express();
 const port = process.env.APP_PORT;
-const appOrigin =
-  process.env.APP_ORIGIN + ":" + process.env.APP_PORT ||
-  "http://localhost:3000";
-app.use(bodyParser.json());
+const appOrigin = process.env.APP_ORIGIN || "http://localhost:3000";
 
+app.use(bodyParser.json());
 app.use("/", express.static(path.join(__dirname, "app")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 
-const log = console.log;
+app.use((req, res, next) => {
+  log(`[request] ${req.originalUrl}`);
+  next();
+});
 
-app.get("/health", (req, res) => {
-  log("[info][/health] 200 ok");
-  res.sendStatus(200);
+app.get("/health", async (req, res) => {
+  // Check DB
+  let dbHealth = false;
+  try {
+    const db = await createMongoClient();
+    const stats = await db.stats();
+    if (stats?.ok === 1) dbHealth = true;
+  } catch (e) {
+    error("db check failed: ", e);
+  }
+
+  res.status(200).send({ serverHealth: true, dbHealth });
 });
 
 app.post("/shorten", async (req, res) => {
-  log("[info][/shorten] request: ", { body: req.body });
+  log("[/shorten] request: ", { body: req.body });
   const db = await createMongoClient();
   const linkCollection = db.collection("links");
 
   const urlRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
   if (!req.body.url || req.body.url?.match(urlRegex)?.length < 0) {
-    log("[error][/shorten] invalid url");
+    error("[/shorten] invalid url");
     return res.status(400).send({ message: "Invalid URL." });
   }
 
   const hash = createHash("sha256").update(req.body.url).digest("base64");
   const code = hash.slice(0, 6);
-  log("[info][/shorten] created code: ", { code });
+  log("[/shorten] created code: ", { code });
 
   const dupeCheck = await linkCollection.findOne({ code });
   const time = new Date().getTime();
-  log("[info][/shorten] dupe check: ", { duped: !!dupeCheck?.id });
+  log("[/shorten] dupe check: ", { duped: !!dupeCheck?.id });
 
   if (dupeCheck?._id) {
-    log("[info][/shorten] sending cached link");
+    log("[/shorten] sending cached link");
     return res.status(200).send({
       endpoint: req.body.url,
       redirect: appOrigin + "/" + code,
@@ -58,16 +69,14 @@ app.post("/shorten", async (req, res) => {
       time,
     };
 
-    log("[info][/shorten] creating link: ", { link });
-
+    log("[/shorten] creating link: ", { link });
     await linkCollection.insertOne(link).catch((e) => {
       return res.status(500).send({
         message: "Error creating link.",
       });
     });
 
-    log("[info][/shorten] sending created link");
-
+    log("[/shorten] sending created link");
     res.status(200).send({
       endpoint: req.body.url,
       redirect: appOrigin + "/" + code,
@@ -78,39 +87,39 @@ app.post("/shorten", async (req, res) => {
 
 app.get("/:code", async (req, res) => {
   const code = req.params.code;
-  log("[info][/:code] creating link: ", { code });
+  log("[/:code] requested link: ", { code });
 
   const validCode = code && code.match(/[a-zA-Z0-9]{6}/)?.length >= 1;
   if (!validCode) {
-    log("[error][/:code] invalid code");
+    error("[/:code] invalid code");
     return res.sendFile(__dirname + "/400.html");
   }
 
   const db = await createMongoClient();
   const linkCollection = db.collection("links");
   const data = await linkCollection.findOne({ code });
-  log("[info][/:code] link lookup: ", { data });
+  log("[/:code] link lookup: ", { data });
 
   if (!data || !data.endpoint) {
-    log("[error][/:code] link not found");
+    error("[/:code] link not found");
     return res.sendFile(__dirname + "/404.html");
   }
 
-  log("[info][/:code] sending redirect to endpoint");
+  log("[/:code] sending redirect to endpoint");
   res.redirect(data.endpoint);
 });
 
 const crontime = process.env.CLEANUP_CRON || "1 * * * *";
-log("[info][cron] cron startup: ", crontime);
+log("[cron] cron startup: ", crontime);
 cron.schedule(crontime, async () => {
-  log("[info][cron] running cleardown.");
+  log("[cron] running cleardown.");
   const db = await createMongoClient();
   const linkCollection = db.collection("links");
   const deleteResp = await linkCollection.deleteMany({});
-  log("[info][cron] cleardown resp: ", deleteResp);
+  log("[cron] cleardown resp: ", deleteResp);
 });
 
 // Start the server
 app.listen(port, () => {
-  log(`[info][init] running on ${appOrigin}`);
+  log(`[init] running on ${appOrigin}`);
 });
