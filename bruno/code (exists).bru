@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{url}}/4MYl1z
+  url: {{url}}/codehere
   body: none
   auth: inherit
 }
@@ -16,4 +16,5 @@ assert {
 
 script:pre-request {
   req.setMaxRedirects(0); // Stop Redirects
+  req.setUrl(bru.getEnvVar('url')+"/"+bru.getVar('fresh'))
 }
