@@ -29,14 +29,11 @@ header h2 {
 }
 
 footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
+  margin-top: 50px;
   padding: 15px;
   width: 100%;
-  display: flex;
-  justify-content: space-between;
   opacity: 0.6;
+  text-align: center;
 }
 
 form#url-form {
@@ -49,6 +46,7 @@ form#url-form input[type="text"] {
   border-radius: 3px;
   border: none;
   background-color: rgb(241, 241, 241);
+  height: 40px;
 }
 
 button {
@@ -78,6 +76,17 @@ form#url-form button:focus {
   background: #74c186;
 }
 
+@media only screen and (max-width: 450px) {
+  form#url-form {
+    flex-direction: column;
+  }
+
+  form#url-form > button {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}
+
 div#url-error {
   display: none;
   margin-top: 10px;
@@ -101,13 +110,15 @@ table.history-list td.empty-text {
   opacity: 0.5;
 }
 
-table.history-list,
-table.history-list th,
-table.history-list td {
-  border: 1px solid lightgray;
+table.history-list th {
+  background: lightgrey;
+}
+
+table.history-list tr:nth-child(even) {
+  background: rgb(241, 241, 241);
 }
 
 table.history-list th,
 table.history-list td {
-  padding: 5px;
+  padding: 10px 5px;
 }

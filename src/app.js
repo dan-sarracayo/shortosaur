@@ -67,6 +67,11 @@ app.post("/shorten", async (req, res) => {
       endpoint: req.body.url,
       code,
       time,
+      creator: {
+        ip: req.ip,
+        headers: req.rawHeaders,
+      },
+      hits: [],
     };
 
     log("[/shorten] creating link: ", { link });
@@ -104,6 +109,16 @@ app.get("/:code", async (req, res) => {
     error("[/:code] link not found");
     return res.sendFile(__dirname + "/404.html");
   }
+
+  const hit = {
+    ip: req.ip,
+    headers: req.rawHeaders,
+  };
+  const hits = data?.hits || [];
+  await linkCollection.updateOne(
+    { _id: data._id },
+    { $set: { hits: [...hits, hit] } }
+  );
 
   log("[/:code] sending redirect to endpoint");
   res.redirect(data.endpoint);
