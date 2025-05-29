@@ -2,12 +2,12 @@ require("dotenv").config();
 
 const express = require("express");
 const bodyParser = require("body-parser");
-const { createHash } = require("node:crypto");
 const path = require("path");
 const cron = require("node-cron");
 
 const { createMongoClient } = require("./utils/mongo");
 const { log, error } = require("./utils/helpers");
+const { generateUrlHash } = require("./utils/hash");
 
 const app = express();
 const port = process.env.APP_PORT;
@@ -16,6 +16,9 @@ const appOrigin = process.env.APP_ORIGIN || "http://localhost:3000";
 app.use(bodyParser.json());
 app.use("/", express.static(path.join(__dirname, "app")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
+
+const validUrlRegex =
+  /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
 
 app.use((req, res, next) => {
   log(`[request] ${req.originalUrl}`);
@@ -41,15 +44,14 @@ app.post("/shorten", async (req, res) => {
   const db = await createMongoClient();
   const linkCollection = db.collection("links");
 
-  const urlRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
-  if (!req.body.url || req.body.url?.match(urlRegex)?.length < 0) {
+  if (!req.body.url || !req.body.url?.match(validUrlRegex)?.length) {
     error("[/shorten] invalid url");
     return res.status(400).send({ message: "Invalid URL." });
   }
 
-  const hash = createHash("sha256").update(req.body.url).digest("base64");
+  const hash = generateUrlHash(req.body.url);
   const code = hash.slice(0, 6);
-  log("[/shorten] created code: ", { code });
+  log("[/shorten] created code: ", { hash, code });
 
   const dupeCheck = await linkCollection.findOne({ code });
   const time = new Date().getTime();
@@ -90,15 +92,9 @@ app.post("/shorten", async (req, res) => {
   }
 });
 
-app.get("/:code", async (req, res) => {
+app.get("/:code([a-zA-Z0-9]{6})", async (req, res) => {
   const code = req.params.code;
   log("[/:code] requested link: ", { code });
-
-  const validCode = code && code.match(/[a-zA-Z0-9]{6}/)?.length >= 1;
-  if (!validCode) {
-    error("[/:code] invalid code");
-    return res.sendFile(__dirname + "/400.html");
-  }
 
   const db = await createMongoClient();
   const linkCollection = db.collection("links");
@@ -124,13 +120,32 @@ app.get("/:code", async (req, res) => {
   res.redirect(data.endpoint);
 });
 
-const crontime = process.env.CLEANUP_CRON || "1 * * * *";
-log("[cron] cron startup: ", crontime);
+// app.get("/*", (req, res) => {
+//   const urlToShorten = req.params[0];
+
+//   if (!urlToShorten?.match(validUrlRegex)?.length) {
+//     error("[shorten-by-prefix] url not valid.");
+//     return res.status(400).send({ message: "Invalid url." });
+//   }
+
+//   res.status(200).send({ params: req.params });
+// });
+
+// Default cron cleanup process to run every minute.
+const crontime = process.env.CLEANUP_CRON || "* * * * *";
+const linkttl = Number(process?.env?.LINK_TTL ?? 1000 * 60 * 60);
+log("[cron] crontime: ", crontime);
+log("[cron] link ttl: ", linkttl);
 cron.schedule(crontime, async () => {
   log("[cron] running cleardown.");
+  const now = new Date().getTime();
+  // Default link TTY to 1 hour.
+  const oneHourAgo = now - linkttl;
   const db = await createMongoClient();
   const linkCollection = db.collection("links");
-  const deleteResp = await linkCollection.deleteMany({});
+  const deleteResp = await linkCollection.deleteMany({
+    time: { $lte: oneHourAgo },
+  });
   log("[cron] cleardown resp: ", deleteResp);
 });
 
