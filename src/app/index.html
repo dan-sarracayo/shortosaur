@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <title>Shortosaur</title>
@@ -7,12 +7,17 @@
     <meta name="description" content="The cute stegosaurus that shortens URLs" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+
     <link rel="stylesheet" type="text/css" href="/styles.css" />
 </head>
 
 <body>
     <header>
-        <image src="/assets/shortosaur-transparent.svg" alt="a cute cartoon stegosaurus, shortosaur's mascot" />
+        <image src="/assets/shortosaur@400.webp" width="250" alt="a cute cartoon stegosaurus, shortosaur's mascot" />
         <h2>Shortosaur</h2>
         <p>A simple URL shortening service</p>
     </header>
@@ -22,22 +27,16 @@
             <input id="url-input" type="text" placeholder="Enter a link to shorten!" />
             <button id="url-go" type="submit">Rawh!</button>
         </form>
-        <div id="url-error">The url entered needs to be a url like this: http(s)://(subdomain.)domain.tld/</div>
-    </section>
-
-    <section>
-        <table class="history-list">
-            <thead>
-                <tr>
-                    <th>Destination</th>
-                    <th>Short Link</th>
-                    <th>Created</th>
-                </tr>
-            </thead>
-            <tbody id="history-list">
-            </tbody>
-        </table>
-        <button id="clear-history" style="width: 100%;">Clear History</button>
+        <div id="url-error"></div>
+        <div id="result">
+            <div id="color-block"></div>
+            <div class="links">
+                <p><span id="destination"></span></p>
+                <p><span id="shortlink"></span></p>
+                <input id="copy-link"></input>
+            </div>
+            <button id="copy-button" onclick="copyToClipboard()">Copy</button>
+        </div>
     </section>
 
     <footer>

@@ -14,16 +14,17 @@ const port = process.env.APP_PORT;
 const appOrigin = process.env.APP_ORIGIN || "http://localhost:3000";
 
 app.use(bodyParser.json());
-app.use("/", express.static(path.join(__dirname, "app")));
-app.use("/assets", express.static(path.join(__dirname, "assets")));
-
-const validUrlRegex =
-  /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
 
 app.use((req, res, next) => {
   log(`[request] ${req.originalUrl}`);
   next();
 });
+
+app.use("/", express.static(path.join(__dirname, "app")));
+app.use("/assets", express.static(path.join(__dirname, "assets")));
+
+const validUrlRegex =
+  /^(https?:\/\/)?([a-zA-Z0-9\-\.]+)(:[0-9]{1,5})?(\/[^\s]*)?$/;
 
 app.get("/health", async (req, res) => {
   // Check DB

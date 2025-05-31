@@ -3,11 +3,16 @@ console.log("shortosaur is awake");
 const form = document.getElementById("url-form");
 const input = document.getElementById("url-input");
 const error = document.getElementById("url-error");
+const result = document.getElementById("result");
+const resultColorBlock = document.getElementById("color-block");
+const resultShortlink = document.getElementById("shortlink");
+const resultdestination = document.getElementById("destination");
+const copyButton = document.getElementById("copy-button");
+const copyLink = document.getElementById("copy-link");
 const go = document.getElementById("url-go");
-const history = document.getElementById("history-list");
-const clearBtn = document.getElementById("clear-history");
 
-const urlRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
+const validUrlRegex =
+  /^(https?:\/\/)?([a-zA-Z0-9\-\.]+)(:[0-9]{1,5})?(\/[^\s]*)?$/;
 
 const doShortening = async (url) => {
   const resp = await fetch("/shorten", {
@@ -23,63 +28,16 @@ const doShortening = async (url) => {
 };
 
 const lsid = "shortosaur"; // localstorage key.
-const paintHistory = () => {
-  const historyArrayString = window.localStorage.getItem(lsid) || "[]";
-  const historyArray = JSON.parse(historyArrayString);
-
-  if (historyArray < 1) {
-    clearBtn.style.display = "none";
-  } else {
-    clearBtn.style.display = "block";
-  }
-
-  let newHistoryList = "";
-  if (historyArray?.length) {
-    historyArray
-      .sort(({ time: timeA }, { time: timeZ }) => timeZ - timeA)
-      .filter(({ endpoint: e, redirect: r, time: t }) => e && r && t)
-      .forEach((shortening) => {
-        const { endpoint, redirect, time } = shortening;
-        const pad = (n) => (n < 10 ? "0" + n : n);
-        const _time = new Date(time);
-        const prettyTime =
-          pad(_time.getDate()) +
-          "/" +
-          pad(_time.getMonth()) +
-          "/" +
-          pad(_time.getFullYear());
-
-        const link = (url) =>
-          `<a href="${url}" target="_blank">${url.replace(
-            /https?\:\/\//,
-            ""
-          )}</a>`;
-
-        newHistoryList += "<tr>";
-        newHistoryList += `<td>${link(endpoint)}</td>`;
-        newHistoryList += `<td>${link(redirect)}</td>`;
-        newHistoryList += `<td>${prettyTime}</td>`;
-        newHistoryList += "</tr>";
-      });
-  } else {
-    newHistoryList +=
-      "<tr><td colSpan='3' class='empty-text'>Previously shortened links will show here.</tr></tr>";
-  }
-
-  history.innerHTML = newHistoryList;
-};
 
 const saveResponse = (response) => {
   const historyArrayString = window.localStorage.getItem(lsid) || "[]";
   const historyArray = JSON.parse(historyArrayString);
   historyArray.push(response);
   window.localStorage.setItem(lsid, JSON.stringify(historyArray));
-  paintHistory();
 };
 
 const clearHistory = () => {
   window.localStorage.setItem(lsid, "[]");
-  paintHistory();
 };
 
 /**
@@ -89,15 +47,59 @@ const clearHistory = () => {
   input.addEventListener("keyup", (e) => {
     const value = e.target.value;
 
-    if (value !== "" && !value?.match(urlRegex)?.length) {
+    if (value !== "" && !value?.match(validUrlRegex)?.length) {
+      error.innerHTML =
+        "The url entered needs to be a url like this: http(s)://(subdomain.)domain.tld/";
       error.classList.add("active");
       go.setAttribute("disabled", "disabled");
     } else {
+      error.innerHTML = "";
       error.classList.remove("active");
       go.removeAttribute("disabled");
     }
   });
 })();
+
+const link = (url) =>
+  `<a href="${url}" target="_blank">${url
+    .replace(/https?:\/\/(.*)\/?$/g, "$1")
+    .replace(/\/$/, "")}</a>`;
+
+const stringToHexColor = (url) => {
+  // Create a hash from the URL
+  let hash = 0;
+  for (let i = 0; i < url.length; i++) {
+    hash = url.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  // Convert the hash to a hex color code
+  let color = "#";
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff; // Get the last 8 bits
+    color += ("00" + value.toString(16)).slice(-2); // Convert to hex and pad with zeros
+  }
+
+  return color;
+};
+
+const copyToClipboard = () => {
+  // Copy the text inside the text field
+  const copyText = document
+    .getElementById("shortlink")
+    .getElementsByTagName("a")[0];
+
+  // Select the text field
+  // copyText.select();
+  // copyText.setSelectionRange(0, 99999); // For mobile devices
+
+  // Copy the text inside the text field
+  navigator.clipboard.writeText(copyText.href);
+
+  copyButton.innerHTML = "Copied";
+  setTimeout(() => {
+    copyButton.innerHTML = "Copy";
+  }, 1000);
+};
 
 /**
  * Form handler.
@@ -110,21 +112,24 @@ const clearHistory = () => {
     const response = await doShortening(inputUrl);
 
     if (response.status !== 200) {
-      alert(response);
+      console.error(response);
+      error.innerHTML = "Something went wrong creating your shortlink.";
+      error.classList.add("active");
     } else {
       saveResponse(response.body);
       input.value = "";
-    }
-  });
-})();
 
-/**
- *
- */
-(() => {
-  clearBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    clearHistory();
+      error.classList.remove("active");
+      error.innerHTML = "";
+
+      resultColorBlock.style.borderColor = stringToHexColor(
+        response.body.redirect
+      );
+      copyLink.value = response.body.redirect;
+      resultShortlink.innerHTML = link(response.body.redirect);
+      resultdestination.innerHTML = link(response.body.endpoint);
+      result.classList.add("active");
+    }
   });
 })();
 
@@ -132,5 +137,15 @@ const clearHistory = () => {
  * Init
  */
 (() => {
-  paintHistory();
+  const history = window.localStorage.getItem(lsid);
+  const historyArray = JSON.parse(history || "[]");
+
+  const lastLink = historyArray.sort(({ time: a }, { time: z }) => z - a)[0];
+  if (lastLink) {
+    resultColorBlock.style.borderColor = stringToHexColor(lastLink.redirect);
+    copyLink.value = lastLink.redirect;
+    resultShortlink.innerHTML = link(lastLink.redirect);
+    resultdestination.innerHTML = link(lastLink.endpoint);
+    result.classList.add("active");
+  }
 })();
