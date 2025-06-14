@@ -3,7 +3,6 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const path = require("path");
-const cron = require("node-cron");
 
 const { createMongoClient } = require("./utils/mongo");
 const { log, error } = require("./utils/helpers");
@@ -12,6 +11,8 @@ const { generateUrlHash } = require("./utils/hash");
 const app = express();
 const port = process.env.APP_PORT;
 const appOrigin = process.env.APP_ORIGIN || "http://localhost:3000";
+
+const linkttl = Number(process?.env?.LINK_TTL ?? 60 * 60);
 
 app.use(bodyParser.json());
 
@@ -75,6 +76,7 @@ app.post("/shorten", async (req, res) => {
         headers: req.rawHeaders,
       },
       hits: [],
+      expiresAfter: new Date().getTime() + linkttl,
     };
 
     log("[/shorten] creating link: ", { link });
@@ -119,35 +121,6 @@ app.get("/:code([a-zA-Z0-9]{6})", async (req, res) => {
 
   log("[/:code] sending redirect to endpoint");
   res.redirect(data.endpoint);
-});
-
-// app.get("/*", (req, res) => {
-//   const urlToShorten = req.params[0];
-
-//   if (!urlToShorten?.match(validUrlRegex)?.length) {
-//     error("[shorten-by-prefix] url not valid.");
-//     return res.status(400).send({ message: "Invalid url." });
-//   }
-
-//   res.status(200).send({ params: req.params });
-// });
-
-// Default cron cleanup process to run every minute.
-const crontime = process.env.CLEANUP_CRON || "* * * * *";
-const linkttl = Number(process?.env?.LINK_TTL ?? 1000 * 60 * 60);
-log("[cron] crontime: ", crontime);
-log("[cron] link ttl: ", linkttl);
-cron.schedule(crontime, async () => {
-  log("[cron] running cleardown.");
-  const now = new Date().getTime();
-  // Default link TTY to 1 hour.
-  const oneHourAgo = now - linkttl;
-  const db = await createMongoClient();
-  const linkCollection = db.collection("links");
-  const deleteResp = await linkCollection.deleteMany({
-    time: { $lte: oneHourAgo },
-  });
-  log("[cron] cleardown resp: ", deleteResp);
 });
 
 // Start the server

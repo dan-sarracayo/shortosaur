@@ -60,10 +60,16 @@ const clearHistory = () => {
   });
 })();
 
-const link = (url) =>
-  `<a href="${url}" target="_blank">${url
-    .replace(/https?:\/\/(.*)\/?$/g, "$1")
-    .replace(/\/$/, "")}</a>`;
+const link = (url, truncateAfter = 0) => {
+  let linkText = url.replace(/https?:\/\/(.*)\/?$/g, "$1").replace(/\/$/, "");
+
+  console.log("rendering link: ", { url, truncateAfter });
+  if (truncateAfter) {
+    linkText = linkText.slice(0, truncateAfter) + "...";
+  }
+
+  return `<a href="${url}" target="_blank">${linkText}</a>`;
+};
 
 const stringToHexColor = (url) => {
   // Create a hash from the URL
@@ -87,10 +93,6 @@ const copyToClipboard = () => {
   const copyText = document
     .getElementById("shortlink")
     .getElementsByTagName("a")[0];
-
-  // Select the text field
-  // copyText.select();
-  // copyText.setSelectionRange(0, 99999); // For mobile devices
 
   // Copy the text inside the text field
   navigator.clipboard.writeText(copyText.href);
@@ -127,7 +129,7 @@ const copyToClipboard = () => {
       );
       copyLink.value = response.body.redirect;
       resultShortlink.innerHTML = link(response.body.redirect);
-      resultdestination.innerHTML = link(response.body.endpoint);
+      resultdestination.innerHTML = link(response.body.endpoint, 40);
       result.classList.add("active");
     }
   });
@@ -145,7 +147,7 @@ const copyToClipboard = () => {
     resultColorBlock.style.borderColor = stringToHexColor(lastLink.redirect);
     copyLink.value = lastLink.redirect;
     resultShortlink.innerHTML = link(lastLink.redirect);
-    resultdestination.innerHTML = link(lastLink.endpoint);
+    resultdestination.innerHTML = link(lastLink.endpoint, 40);
     result.classList.add("active");
   }
 })();
