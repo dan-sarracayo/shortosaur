@@ -4,17 +4,11 @@ FROM node:alpine
 # Set the working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
 # Copy the rest of the application code
 COPY . .
 
-# Rename docker env to just env.
-RUN ["mv", ".env.docker", ".env"]
+# Install dependencies
+RUN ["npm", "i"]
 
 # Expose the port the app runs on
 EXPOSE 3000
