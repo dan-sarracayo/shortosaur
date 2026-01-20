@@ -7,10 +7,10 @@
     "dev": "nodemon node src/app.js"
   },
   "dependencies": {
-    "body-parser": "^2.2.0",
-    "dotenv": "^16.5.0",
-    "express": "^4.21.2",
-    "mongodb": "^6.17.0",
-    "nodemon": "^3.1.10"
+    "body-parser": "^2.2.2",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "mongodb": "^6.21.0",
+    "nodemon": "^3.1.11"
   }
 }
