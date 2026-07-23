@@ -1,0 +1,26 @@
+name: Deploy App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      deployment: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: SSH Remote Pull
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: bash -i -c 'cd /var/www/labs/shortosaur && git pull && npm i && pm2 restart shortosaur'
