@@ -1,12 +1,13 @@
-require("dotenv").config();
+import 'dotenv/config';
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const path = require("path");
+import express from "express";
+import cors from 'cors';
+import bodyParser from "body-parser";
+import path from "path";
+const __dirname = import.meta.dirname;
 
-const { useMongoClient } = require("./utils/mongo");
-const { log, error } = require("./utils/helpers");
-const { generateUrlHash } = require("./utils/hash");
+import { log, error } from "./utils/helpers.mjs";
+import { generateUrlHash } from "./utils/hash.mjs";
 
 const linkttl = Number(process?.env?.LINK_TTL ?? 60 * 60);
 const validUrlRegex =
@@ -16,20 +17,28 @@ const app = express();
 const port = process.env.APP_PORT;
 const appOrigin = process.env.APP_ORIGIN || "http://localhost:3000";
 
+var corsOptions = {
+  origin: appOrigin,
+  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
+import { db } from './utils/mongo.mjs';
+
+app.use(cors(corsOptions))
 app.use(bodyParser.json());
 app.use((req, res, next) => {
-  log(`[request] ${req.originalUrl}`);
+  const remoteip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  log(`[request][${remoteip}] ${req.originalUrl}`);
   next();
 });
 app.use("/", express.static(path.join(__dirname, "app")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
-app.use(useMongoClient);
 
 app.get("/health", async (req, res) => {
   // Check DB
   let dbHealth = false;
   try {
-    const stats = await req.db.stats();
+    const stats = await db.stats();
     if (stats?.ok === 1) dbHealth = true;
   } catch (e) {
     error("db check failed: ", e);
@@ -40,7 +49,7 @@ app.get("/health", async (req, res) => {
 
 app.post("/shorten", async (req, res) => {
   log("[/shorten] request: ", { body: req.body });
-  const linkCollection = req.db.collection("links");
+  const linkCollection = db.collection("links");
 
   if (!req.body.url || !req.body.url?.match(validUrlRegex)?.length) {
     error("[/shorten] invalid url");
@@ -96,7 +105,7 @@ app.get("/:code([a-zA-Z0-9]{6})", async (req, res) => {
   const code = req.params.code;
   log("[/:code] requested link: ", { code });
 
-  const linkCollection = req.db.collection("links");
+  const linkCollection = db.collection("links");
   const data = await linkCollection.findOne({ code });
   log("[/:code] link lookup: ", { data });
 
@@ -120,6 +129,10 @@ app.get("/:code([a-zA-Z0-9]{6})", async (req, res) => {
 });
 
 // Start the server
-app.listen(port, () => {
+app.listen(port, (error) => {
+  if (error) {
+    console.log(error)
+    process.exit(1)
+  }
   log(`[init] running on ${appOrigin}`);
 });
