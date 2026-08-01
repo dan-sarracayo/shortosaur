@@ -13,7 +13,7 @@ export default defineConfig([
   {
     ignores: ["src/app/**"],
     files: ["**/*.js"],
-    languageOptions: { sourceType: "commonjs" },
+    languageOptions: { sourceType: "module" },
   },
   {
     files: ["src/app/**/*.js"],
